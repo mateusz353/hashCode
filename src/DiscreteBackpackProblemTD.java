@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 public class DiscreteBackpackProblemTD {
 
     private static final String problemName = "c_medium";
-    private static final String srcDir = "/home/mnowakowski/Dokumenty/hashCode/src/";
+    private static final String srcDir = "/home/mnowakowski/Dokumenty/hashCode/out/";
 
     private static final Path inputFilePath = Paths.get(srcDir + problemName +".in");
     private static final Path outputFilePath = Paths.get(srcDir + problemName +".out");
