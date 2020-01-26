@@ -11,17 +11,15 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 
-
-
 // Discret Backpack Problem - simple Dynamic programming (top-down)
 
 public class DiscreteBackpackProblemTD {
 
     private static final String problemName = "c_medium";
-    private static final String srcDir = "/home/mnowakowski/Dokumenty/hashCode/out/";
+    private static final String srcDir = "/home/mnowakowski/Dokumenty/hashCode/inout/";
 
-    private static final Path inputFilePath = Paths.get(srcDir + problemName +".in");
-    private static final Path outputFilePath = Paths.get(srcDir + problemName +".out");
+    private static final Path inputFilePath = Paths.get(srcDir + problemName + ".in");
+    private static final Path outputFilePath = Paths.get(srcDir + problemName + ".out");
 
     public static void main(String[] args) {
         Instant start = Instant.now();
@@ -34,7 +32,7 @@ public class DiscreteBackpackProblemTD {
 
     }
 
-    public void solveProblem(){
+    public void solveProblem() {
 
         Input input = readInputFile();
         input.print();
@@ -45,55 +43,54 @@ public class DiscreteBackpackProblemTD {
 
         writeResultToFile(result);
 
-
     }
 
-    private int recursiveAux(int maxWeight, int numberOfElements, int[] weights, Set<Integer> result){
-        if(numberOfElements == 0 || maxWeight == 0){
+    private int recursiveAux(int maxWeight, int numberOfElements, int[] weights, Set<Integer> result) {
+        if (numberOfElements == 0 || maxWeight == 0) {
             return 0;
         }
-        if(weights[numberOfElements-1] > maxWeight) {
-            return recursiveAux(maxWeight, numberOfElements-1, weights, result);
+        if (weights[numberOfElements - 1] > maxWeight) {
+            return recursiveAux(maxWeight, numberOfElements - 1, weights, result);
 
         }
         Set<Integer> resultWithElement = new HashSet<Integer>();
         Set<Integer> resultWithoutElement = new HashSet<Integer>();
-        int weightWithElement = weights[numberOfElements-1] + recursiveAux(maxWeight - weights[numberOfElements-1], numberOfElements-1, weights, resultWithElement);
-        int weightWithoutElement = recursiveAux(maxWeight, numberOfElements-1, weights, resultWithoutElement);
-        if(weightWithElement >= weightWithoutElement){
+        int weightWithElement = weights[numberOfElements - 1] + recursiveAux(maxWeight - weights[numberOfElements - 1], numberOfElements - 1,
+                weights, resultWithElement);
+        int weightWithoutElement = recursiveAux(maxWeight, numberOfElements - 1, weights, resultWithoutElement);
+        if (weightWithElement >= weightWithoutElement) {
             result.addAll(resultWithElement);
-            result.add(numberOfElements-1);
+            result.add(numberOfElements - 1);
             return weightWithElement;
         }
-        result.addAll( resultWithoutElement);
+        result.addAll(resultWithoutElement);
         return weightWithoutElement;
-    
+
     }
 
     private Input readInputFile() {
         try (BufferedReader reader = Files.newBufferedReader(inputFilePath, StandardCharsets.UTF_8)) {
             Input input = new Input();
-            String[] firstLine =  reader.readLine().split(" ");
+            String[] firstLine = reader.readLine().split(" ");
             input.setMaxWeight(Integer.parseInt(firstLine[0]));
             input.setNumberOfElements(Integer.parseInt(firstLine[1]));
             input.setWeights(stringArrayToIntArray(reader.readLine().split(" ")));
             return input;
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }   
+        }
     }
 
-    int[] stringArrayToIntArray(String[] stringArray)
-    {
+    int[] stringArrayToIntArray(String[] stringArray) {
         return Stream.of(stringArray).mapToInt(Integer::parseInt).toArray();
     }
 
     private void writeResultToFile(Set<Integer> result) {
         StringBuilder outputFileBuilder = new StringBuilder();
-        outputFileBuilder.append(result.size()+"\n");
-        result.stream().forEach(item -> outputFileBuilder.append(item+" "));
+        outputFileBuilder.append(result.size() + "\n");
+        result.stream().forEach(item -> outputFileBuilder.append(item + " "));
 
         try (BufferedWriter writer = Files.newBufferedWriter(outputFilePath)) {
             writer.write(outputFileBuilder.toString());
@@ -102,36 +99,37 @@ public class DiscreteBackpackProblemTD {
         }
     }
 
-    private class Input{
+    private class Input {
+
         private int maxWeight;
         private int numberOfElements;
         private int[] weights;
 
-        public int getMaxWeight(){
+        public int getMaxWeight() {
             return maxWeight;
         }
 
-        public void setMaxWeight(int maxWeight){
+        public void setMaxWeight(int maxWeight) {
             this.maxWeight = maxWeight;
         }
 
-        public int getNumberOfElements(){
+        public int getNumberOfElements() {
             return numberOfElements;
         }
 
-        public void setNumberOfElements(int numberOfElements){
+        public void setNumberOfElements(int numberOfElements) {
             this.numberOfElements = numberOfElements;
         }
 
-        public int[] getWeights(){
+        public int[] getWeights() {
             return weights;
         }
 
-        public void setWeights(int[] weights){
+        public void setWeights(int[] weights) {
             this.weights = weights;
         }
 
-        public void print(){
+        public void print() {
             System.out.println("maxWeight = " + maxWeight + "\nnumberOfElements = " + numberOfElements + "\nweights = " + Arrays.toString(weights) + "\n");
         }
     }

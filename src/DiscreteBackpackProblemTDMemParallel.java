@@ -1,3 +1,5 @@
+import static java.util.function.Function.identity;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
@@ -12,11 +14,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 // Discret Backpack Problem - simple Dynamic programming (top-down) with cache
 
-public class DiscreteBackpackProblemTDMem {
+public class DiscreteBackpackProblemTDMemParallel {
 
     private static final String problemName = "d_quite_big";
     private static final String srcDir = "/home/mnowakowski/Dokumenty/hashCode/inout/";
@@ -24,10 +31,12 @@ public class DiscreteBackpackProblemTDMem {
     private static final Path inputFilePath = Paths.get(srcDir + problemName + ".in");
     private static final Path outputFilePath = Paths.get(srcDir + problemName + ".out");
 
-    public static void main(String[] args) {
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(6);
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
         Instant start = Instant.now();
 
-        DiscreteBackpackProblemTDMem solution = new DiscreteBackpackProblemTDMem();
+        DiscreteBackpackProblemTDMemParallel solution = new DiscreteBackpackProblemTDMemParallel();
         solution.solveProblem();
 
         Instant finish = Instant.now();
@@ -35,7 +44,7 @@ public class DiscreteBackpackProblemTDMem {
 
     }
 
-    public void solveProblem() {
+    public void solveProblem() throws ExecutionException, InterruptedException {
 
         Input input = readInputFile();
         input.print();
@@ -43,7 +52,7 @@ public class DiscreteBackpackProblemTDMem {
         Map<Pair<Integer, Integer>, Integer> memo = new HashMap<>();
 
         System.out.println("Max possible Weight: " + recursiveAux(input.getMaxWeight(), input.getNumberOfElements(), input.getWeights(), memo,
-                result));
+                result).join());
         System.out.println(Arrays.toString(result.toArray()));
         System.out.println(result.stream().map(index -> input.getWeights()[index]).reduce(Integer::sum));
 
@@ -51,22 +60,24 @@ public class DiscreteBackpackProblemTDMem {
 
     }
 
-    private int recursiveAux(int maxWeight, int numberOfElements, int[] weights, Map<Pair<Integer, Integer>, Integer> memo, Set<Integer> result) {
+    private CompletableFuture<Integer> recursiveAux(Integer maxWeight, Integer numberOfElements, Integer[] weights,
+                                                    Map<Pair<Integer, Integer>, Integer> memo, Set<Integer> result) throws ExecutionException,
+            InterruptedException {
         if (numberOfElements == 0 || maxWeight == 0) {
-            return 0;
+            return terminate(0);
         }
         Pair key = new Pair(numberOfElements, maxWeight);
-        System.out.println(String.format("[%d %d]",numberOfElements,maxWeight));
+        System.out.println(String.format("[%d %d]", numberOfElements, maxWeight));
         if (!memo.containsKey(key)) {
             if (weights[numberOfElements - 1] > maxWeight) {
-                memo.put(key, recursiveAux(maxWeight, numberOfElements - 1, weights, memo, result));
+                memo.put(key, recursiveAux(maxWeight, numberOfElements - 1, weights, memo, result).get());
 
             } else {
-                Set<Integer> resultWithElement = new HashSet<Integer>();
-                Set<Integer> resultWithoutElement = new HashSet<Integer>();
-                int weightWithElement = weights[numberOfElements - 1] + recursiveAux(maxWeight - weights[numberOfElements - 1], numberOfElements - 1,
-                        weights, memo, resultWithElement);
-                int weightWithoutElement = recursiveAux(maxWeight, numberOfElements - 1, weights, memo, resultWithoutElement);
+                Set<Integer> resultWithElement = new HashSet<>();
+                Set<Integer> resultWithoutElement = new HashSet<>();
+                Integer weightWithElement = weights[numberOfElements - 1] + recursiveAux(maxWeight - weights[numberOfElements - 1],
+                        numberOfElements - 1, weights, memo, resultWithElement).get();
+                Integer weightWithoutElement = recursiveAux(maxWeight, numberOfElements - 1, weights, memo, resultWithoutElement).get();
                 if (weightWithElement >= weightWithoutElement) {
                     result.addAll(resultWithElement);
                     result.add(numberOfElements - 1);
@@ -77,8 +88,15 @@ public class DiscreteBackpackProblemTDMem {
                 }
             }
         }
-        return memo.get(key);
+        return terminate(memo.get(key));
+    }
 
+    private static <T> CompletableFuture<T> terminate(T t) {
+        return CompletableFuture.completedFuture(t);
+    }
+
+    private static <T> CompletableFuture<T> tailcall(Supplier<CompletableFuture<T>> s) {
+        return CompletableFuture.supplyAsync(s, POOL).thenCompose(identity());
     }
 
     private Input readInputFile() {
@@ -87,7 +105,7 @@ public class DiscreteBackpackProblemTDMem {
             String[] firstLine = reader.readLine().split(" ");
             input.setMaxWeight(Integer.parseInt(firstLine[0]));
             input.setNumberOfElements(Integer.parseInt(firstLine[1]));
-            input.setWeights(stringArrayToIntArray(reader.readLine().split(" ")));
+            input.setWeights(stringArrayToIntegerArray(reader.readLine().split(" ")));
             return input;
 
         } catch (Exception e) {
@@ -96,8 +114,8 @@ public class DiscreteBackpackProblemTDMem {
         }
     }
 
-    int[] stringArrayToIntArray(String[] stringArray) {
-        return Stream.of(stringArray).mapToInt(Integer::parseInt).toArray();
+    Integer[] stringArrayToIntegerArray(String[] stringArray) {
+        return Stream.of(stringArray).map(Integer::new).toArray(Integer[]::new);
     }
 
     private void writeResultToFile(Set<Integer> result) {
@@ -114,31 +132,31 @@ public class DiscreteBackpackProblemTDMem {
 
     private class Input {
 
-        private int maxWeight;
-        private int numberOfElements;
-        private int[] weights;
+        private Integer maxWeight;
+        private Integer numberOfElements;
+        private Integer[] weights;
 
-        public int getMaxWeight() {
+        public Integer getMaxWeight() {
             return maxWeight;
         }
 
-        public void setMaxWeight(int maxWeight) {
+        public void setMaxWeight(Integer maxWeight) {
             this.maxWeight = maxWeight;
         }
 
-        public int getNumberOfElements() {
+        public Integer getNumberOfElements() {
             return numberOfElements;
         }
 
-        public void setNumberOfElements(int numberOfElements) {
+        public void setNumberOfElements(Integer numberOfElements) {
             this.numberOfElements = numberOfElements;
         }
 
-        public int[] getWeights() {
+        public Integer[] getWeights() {
             return weights;
         }
 
-        public void setWeights(int[] weights) {
+        public void setWeights(Integer[] weights) {
             this.weights = weights;
         }
 
@@ -147,7 +165,8 @@ public class DiscreteBackpackProblemTDMem {
         }
     }
 
-    private class Pair<K,V>{
+    private class Pair<K, V> {
+
         K key;
         V value;
 
